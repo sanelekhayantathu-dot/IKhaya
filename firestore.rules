@@ -98,5 +98,27 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // 7. Support Tickets Collection (/supportTickets/{ticketId})
+    match /supportTickets/{ticketId} {
+      allow create: if isValidId(ticketId) && incoming().email is string && incoming().message is string;
+      allow get: if true;
+      allow list: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // 8. Outgoing Mail Collection for Email Dispatch & Extensions (/mail/{mailId})
+    match /mail/{mailId} {
+      allow create: if isValidId(mailId) && incoming().to is list && incoming().message is map;
+      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email in resource.data.to);
+      allow list, update, delete: if isAdmin();
+    }
+
+    // 9. Email Notifications & Receipts Audit (/emailNotifications/{notificationId})
+    match /emailNotifications/{notificationId} {
+      allow create: if isValidId(notificationId) && incoming().to is list;
+      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email in resource.data.to);
+      allow list, update, delete: if isAdmin();
+    }
   }
 }

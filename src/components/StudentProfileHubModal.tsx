@@ -35,11 +35,15 @@ import {
   ExternalLink,
   Shield,
   UserCheck,
-  Award
+  Award,
+  RefreshCw,
+  MailCheck
 } from 'lucide-react';
 import { StudentProfile, RentalDocument, BookingApplication, Accommodation, Conversation, ChatMessage } from '../types';
 import { UNIVERSITIES_LIST } from '../data/mockData';
 import { DocumentViewerModal } from './DocumentViewerModal';
+import { UserAvatar } from './UserAvatar';
+import { useAuth } from '../context/AuthContext';
 
 export interface StudentProfileHubModalProps {
   isOpen: boolean;
@@ -90,6 +94,24 @@ export const StudentProfileHubModal: React.FC<StudentProfileHubModalProps> = ({
   const safeSaved = savedAccommodations || [];
 
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const { isEmailVerified, sendEmailConfirmation } = useAuth();
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
+  const [confirmationNotice, setConfirmationNotice] = useState<string | null>(null);
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = studentProfile?.email;
+    if (!targetEmail) return;
+    setIsResendingConfirmation(true);
+    setConfirmationNotice(null);
+    try {
+      const res = await sendEmailConfirmation(targetEmail);
+      setConfirmationNotice(res.message);
+    } catch (err: any) {
+      setConfirmationNotice(err?.message || 'Failed to dispatch confirmation email.');
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  };
   
   useEffect(() => {
     if (initialTab) {
@@ -331,19 +353,14 @@ export const StudentProfileHubModal: React.FC<StudentProfileHubModalProps> = ({
         <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className={`w-10 h-10 rounded-xl ${currentView === 'landlord' ? 'bg-lime-600 border-lime-400' : 'bg-orange-500 border-orange-300'} text-white flex items-center justify-center font-bold text-sm border-2 shadow-2xs`}>
-                {currentView === 'landlord' ? 'SN' : (
-                  studentProfile?.fullName
-                    ? studentProfile.fullName
-                        .split(' ')
-                        .filter(Boolean)
-                        .map((n) => n[0])
-                        .join('')
-                        .slice(0, 2)
-                        .toUpperCase()
-                    : 'ST'
-                )}
-              </div>
+              <UserAvatar
+                name={currentView === 'landlord' ? 'Sibusiso Ndlovu' : (studentProfile?.fullName || 'Student')}
+                avatarUrl={studentProfile?.avatar}
+                email={studentProfile?.email}
+                role={currentView === 'landlord' ? 'landlord' : 'student'}
+                size="md"
+                rounded="rounded-xl"
+              />
               <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full ${currentView === 'landlord' ? 'bg-lime-500' : 'bg-orange-500'} border-2 border-white ring-1 ring-slate-400/30`}></span>
             </div>
             <div>
@@ -994,6 +1011,32 @@ export const StudentProfileHubModal: React.FC<StudentProfileHubModalProps> = ({
 
                 {!isEditing ? (
                   <div className="space-y-4">
+                    {/* Profile Picture & Identity Badge */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <UserAvatar
+                          name={studentProfile.fullName}
+                          avatarUrl={studentProfile.avatar}
+                          email={studentProfile.email}
+                          role="student"
+                          size="lg"
+                          rounded="rounded-2xl"
+                        />
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">{studentProfile.fullName}</h4>
+                          <p className="text-xs text-slate-500 font-mono">{studentProfile.email}</p>
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-slate-500">
+                            {studentProfile.avatar && !studentProfile.avatar.includes('images.unsplash.com')
+                              ? 'Custom profile picture active'
+                              : 'Initials avatar active'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                        {studentProfile.fundingType || 'NSFAS Verified'}
+                      </span>
+                    </div>
+
                     {/* Information Grid List */}
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 divide-y divide-slate-200/80">
                       
@@ -1034,10 +1077,48 @@ export const StudentProfileHubModal: React.FC<StudentProfileHubModalProps> = ({
                       </div>
 
                       {/* Item 7: Email Address */}
-                      <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">University Email</span>
-                        <span className="text-xs font-bold text-slate-900">{studentProfile.email}</span>
+                      <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">University Email</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-bold text-slate-900">{studentProfile.email}</span>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              isEmailVerified 
+                                ? 'bg-lime-100 text-lime-800 border border-lime-300' 
+                                : 'bg-orange-100 text-orange-800 border border-orange-200'
+                            }`}>
+                              {isEmailVerified ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-lime-600" />
+                                  <span>Email Verified</span>
+                                </>
+                              ) : (
+                                <>
+                                  <MailCheck className="w-3 h-3 text-orange-600" />
+                                  <span>Confirmation Active</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isResendingConfirmation}
+                          onClick={handleResendConfirmation}
+                          className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold border border-orange-200 transition flex items-center gap-1.5 self-start sm:self-center disabled:opacity-50 cursor-pointer shadow-2xs"
+                          title="Resend email confirmation & verification receipt"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${isResendingConfirmation ? 'animate-spin' : ''}`} />
+                          <span>{isResendingConfirmation ? 'Sending...' : 'Resend Email Confirmation'}</span>
+                        </button>
                       </div>
+
+                      {confirmationNotice && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{confirmationNotice}</span>
+                        </div>
+                      )}
 
                       {/* Item 8: Phone */}
                       <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">

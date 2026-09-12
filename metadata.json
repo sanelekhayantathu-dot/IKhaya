@@ -1,6 +1,6 @@
 {
   "name": "iKhaya Res Living",
-  "description": "South Africa's student accommodation portal featuring university proximity filters, verified NSFAS residences, direct landlord messaging, secure document vaults, and student reviews.",
+  "description": "Find verified student accommodation in South Africa near UCT, Wits, UP, UJ, and Stellenbosch. Search NSFAS-accredited residences, private student rooms, and flats with backup power.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -17,10 +17,12 @@ import {
   Headphones,
   Plus,
   Settings,
-  Lock
+  Lock,
+  LifeBuoy
 } from 'lucide-react';
 import { UserProfile, UserRole, StudentProfile } from '../types';
 import { BrandLogo } from './BrandLogo';
+import { UserAvatar } from './UserAvatar';
 
 interface NavbarProps {
   currentView: 'student' | 'landlord' | 'admin';
@@ -35,6 +37,7 @@ interface NavbarProps {
   onOpenAddListing: () => void;
   onOpenStudentProfile: (tab?: 'messages' | 'applications' | 'profile' | 'documents' | 'saved' | 'guarantor') => void;
   onOpenAuthModal: (mode?: 'signin' | 'register') => void;
+  onContactSupport?: () => void;
   onTalkToAgent?: () => void;
   onSignOut?: () => void;
 }
@@ -52,11 +55,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAddListing,
   onOpenStudentProfile,
   onOpenAuthModal,
+  onContactSupport,
   onTalkToAgent,
   onSignOut,
 }) => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSupportClick = onContactSupport || onTalkToAgent;
 
   const role = userProfile?.role || null;
   const isStudent = role === 'student';
@@ -107,16 +113,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Clean Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Talk to an Agent Option (Available to all students & visitors) */}
-            {onTalkToAgent && (!userProfile || isStudent) && (
+            {/* Contact Support Option (Available to all students, landlords & visitors) */}
+            {handleSupportClick && (
               <button
-                id="nav-talk-to-agent-btn"
-                onClick={onTalkToAgent}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-lime-50 hover:bg-lime-100 text-lime-950 border border-lime-300 text-xs font-bold transition shadow-2xs group"
-                title="Speak directly with an accredited iKhaya Res Living Housing Agent"
+                id="nav-contact-support-btn"
+                onClick={handleSupportClick}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-200 text-xs font-bold transition shadow-2xs group cursor-pointer"
+                title="Contact iKhaya Res Living Support (support@ikhayaresliving.co.za)"
               >
-                <Headphones className="w-3.5 h-3.5 text-lime-700 group-hover:scale-110 transition-transform" />
-                <span>Talk to Agent</span>
+                <LifeBuoy className="w-3.5 h-3.5 text-orange-600 group-hover:rotate-45 transition-transform" />
+                <span>Contact Support</span>
               </button>
             )}
 
@@ -186,23 +192,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   {/* Avatar with unread notification badge */}
                   <div className="relative">
-                    <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold border-2 shadow-2xs group-hover:scale-105 transition-transform ${
-                      isAdmin 
-                        ? 'bg-slate-900 border-amber-400' 
-                        : isLandlord 
-                          ? 'bg-lime-600 border-lime-400' 
-                          : 'bg-orange-500 border-orange-300'
-                    }`}>
-                      {userProfile?.fullName
-                        ? (userProfile.fullName
-                            .split(' ')
-                            .filter(Boolean)
-                            .map((n) => n[0])
-                            .join('')
-                            .slice(0, 2)
-                            .toUpperCase() || 'IK')
-                        : 'IK'}
-                    </div>
+                    <UserAvatar
+                      name={userProfile.fullName}
+                      avatarUrl={userProfile.avatar}
+                      email={userProfile.email}
+                      role={userProfile.role}
+                      size="sm"
+                      className="group-hover:scale-105 transition-transform ring-1 ring-slate-200"
+                    />
                     {/* Unread badge */}
                     {unreadMessagesCount > 0 && (
                       <span 
@@ -253,30 +250,41 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 text-slate-800 animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Header info */}
                     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-slate-900 truncate">
-                          {userProfile.fullName}
-                        </p>
-                        {isAdmin ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-slate-900 px-2 py-0.5 rounded-full border border-amber-500/40">
-                            <Shield className="w-3 h-3" />
-                            Admin
-                          </span>
-                        ) : isLandlord ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-lime-900 bg-lime-100 px-2 py-0.5 rounded-full border border-lime-300">
-                            <Building2 className="w-3 h-3 text-lime-700" />
-                            Landlord
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-200">
-                            <GraduationCap className="w-3 h-3 text-orange-600" />
-                            Student
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          name={userProfile.fullName}
+                          avatarUrl={userProfile.avatar}
+                          email={userProfile.email}
+                          role={userProfile.role}
+                          size="md"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-900 truncate">
+                              {userProfile.fullName}
+                            </p>
+                            {isAdmin ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-slate-900 px-2 py-0.5 rounded-full border border-amber-500/40">
+                                <Shield className="w-3 h-3" />
+                                Admin
+                              </span>
+                            ) : isLandlord ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-lime-900 bg-lime-100 px-2 py-0.5 rounded-full border border-lime-300">
+                                <Building2 className="w-3 h-3 text-lime-700" />
+                                Landlord
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-200">
+                                <GraduationCap className="w-3 h-3 text-orange-600" />
+                                Student
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
+                            {isLandlord ? userProfile.agencyName || userProfile.email : userProfile.email}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
-                        {isLandlord ? userProfile.agencyName || userProfile.email : userProfile.email}
-                      </p>
                     </div>
 
                     {/* Role-Specific Navigation Items */}
@@ -453,14 +461,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                       )}
                     </div>
 
-                    {/* Sign Out */}
-                    <div className="p-1.5 border-t border-slate-100">
+                    {/* Contact Support & Sign Out */}
+                    <div className="p-1.5 border-t border-slate-100 space-y-0.5">
+                      {handleSupportClick && (
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                            handleSupportClick();
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 text-slate-700 hover:text-orange-700 text-xs font-semibold transition cursor-pointer"
+                        >
+                          <LifeBuoy className="w-4 h-4 text-orange-600" />
+                          <span>Contact Support</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setIsProfileDropdownOpen(false);
                           if (onSignOut) onSignOut();
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 text-xs font-semibold transition"
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 text-xs font-semibold transition cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>

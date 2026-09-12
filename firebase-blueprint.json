@@ -125,6 +125,58 @@
         "adminNotes": { "type": "string", "maxLength": 1000 }
       },
       "required": ["id", "studentId", "documentType", "status"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Customer service inquiry submitted by student or landlord to iKhaya Res Living desk.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ticketNumber": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "role": { "type": "string", "maxLength": 32 },
+        "category": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 256 },
+        "message": { "type": "string", "maxLength": 4000 },
+        "urgency": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "maxLength": 32 },
+        "assignedTo": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "ticketNumber", "name", "email", "subject", "message"]
+    },
+    "MailMessage": {
+      "title": "MailMessage",
+      "description": "Outgoing email confirmation queue processed by Firebase mail extension or cloud delivery worker.",
+      "type": "object",
+      "properties": {
+        "to": { "type": "array" },
+        "replyTo": { "type": "string", "maxLength": 256 },
+        "message": { "type": "object" },
+        "ticketId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["to", "message"]
+    },
+    "EmailNotification": {
+      "title": "EmailNotification",
+      "description": "Email dispatch audit log for receipts and welcome notifications.",
+      "type": "object",
+      "properties": {
+        "to": { "type": "array" },
+        "replyTo": { "type": "string", "maxLength": 256 },
+        "message": { "type": "object" },
+        "ticketId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["to", "message"]
     }
   },
   "firestore": {
@@ -155,6 +207,18 @@
     "/admins/{adminId}": {
       "schema": "User",
       "description": "Staff administrator registry."
+    },
+    "/supportTickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Support tickets submitted by users."
+    },
+    "/mail/{mailId}": {
+      "schema": "MailMessage",
+      "description": "Outgoing email confirmation queue."
+    },
+    "/emailNotifications/{notificationId}": {
+      "schema": "EmailNotification",
+      "description": "Email notification receipts and audit logs."
     }
   }
 }

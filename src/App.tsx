@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -22,7 +22,8 @@ import {
   Plus,
   Headphones,
   UserCheck,
-  ShieldAlert
+  ShieldAlert,
+  LifeBuoy
 } from 'lucide-react';
 import { 
   Accommodation, 
@@ -58,6 +59,8 @@ import { AccommodationsMapView } from './components/AccommodationsMapView';
 import { StudentAuthModal } from './components/StudentAuthModal';
 import { StudentProfileHubModal } from './components/StudentProfileHubModal';
 import { TalkToAgentModal } from './components/TalkToAgentModal';
+import { ContactSupportModal } from './components/ContactSupportModal';
+import { LocationHubSEO } from './components/LocationHubSEO';
 import { BrandLogo } from './components/BrandLogo';
 
 export default function App() {
@@ -109,6 +112,7 @@ export default function App() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>('conv-1');
   const [isAddListingOpen, setIsAddListingOpen] = useState(false);
   const [isTalkToAgentOpen, setIsTalkToAgentOpen] = useState(false);
+  const [isContactSupportOpen, setIsContactSupportOpen] = useState(false);
   
   // Student Hub & Auth modals
   const [isStudentAuthOpen, setIsStudentAuthOpen] = useState(false);
@@ -126,6 +130,78 @@ export default function App() {
     isOpen: false,
     targetType: 'landlord',
   });
+
+  // Technical SEO & URL synchronization (Deep linking from Sitemaps & Google Search)
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const locParam = urlParams.get('location') || urlParams.get('town');
+      const uniParam = urlParams.get('university');
+      const searchParam = urlParams.get('search');
+      const propParam = urlParams.get('property');
+
+      if (locParam || uniParam || searchParam) {
+        setFilters((prev) => ({
+          ...prev,
+          town: locParam || prev.town,
+          university: uniParam || prev.university,
+          searchQuery: searchParam || prev.searchQuery,
+        }));
+      }
+
+      if (propParam && accommodations.length > 0) {
+        const found = accommodations.find((a) => a.id === propParam || a.slug === propParam);
+        if (found) setSelectedProperty(found);
+      }
+    } catch (e) {
+      console.warn('Could not parse URL query parameters:', e);
+    }
+  }, [accommodations]);
+
+  // Dynamically update document title and canonical meta tag based on active SEO view
+  useEffect(() => {
+    try {
+      let pageTitle = 'Student Accommodation in South Africa | Verified NSFAS Housing | iKhaya Res Living';
+      let canonicalUrl = 'https://ikhayaresliving.co.za/';
+      const params = new URLSearchParams();
+
+      if (selectedProperty) {
+        pageTitle = `${selectedProperty.title} | Student Accommodation in ${selectedProperty.suburb || selectedProperty.town} | iKhaya Res Living`;
+        params.set('property', selectedProperty.id);
+      } else if (filters.university) {
+        pageTitle = `Student Accommodation near ${filters.university} | iKhaya Res Living`;
+        params.set('university', filters.university);
+        if (filters.town) params.set('location', filters.town);
+      } else if (filters.town) {
+        pageTitle = `Student Accommodation in ${filters.town}, South Africa | iKhaya Res Living`;
+        params.set('location', filters.town);
+      } else if (filters.searchQuery) {
+        pageTitle = `Search: ${filters.searchQuery} | Student Accommodation | iKhaya Res Living`;
+        params.set('search', filters.searchQuery);
+      }
+
+      const queryString = params.toString();
+      if (queryString) {
+        canonicalUrl = `https://ikhayaresliving.co.za/?${queryString}`;
+        window.history.replaceState({}, '', `?${queryString}`);
+      } else if (!window.location.search.includes('tab=')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
+      document.title = pageTitle;
+
+      // Update Canonical Link tag dynamically
+      let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute('href', canonicalUrl);
+    } catch (e) {
+      console.warn('Could not update SEO meta dynamically:', e);
+    }
+  }, [filters.town, filters.university, filters.searchQuery, selectedProperty]);
 
   // Synthesize StudentProfile representation for legacy student-only modals
   const studentProfileObj: StudentProfile | null = useMemo(() => {
@@ -196,9 +272,10 @@ export default function App() {
         const matchesTown = townStr.includes(searchTown) || (searchTown.length > 3 && searchTown.includes(townStr));
         const matchesSuburb = suburbStr.includes(searchTown) || (searchTown.length > 3 && searchTown.includes(suburbStr));
         const matchesAddress = addressStr.includes(searchTown);
-        const matchesUni = (item.universities || []).some((u) =>
-          u.universityName.toLowerCase().includes(searchTown) || (searchTown.length > 3 && searchTown.includes(u.universityName.toLowerCase()))
-        );
+        const matchesUni = (item.universities || []).some((u) => {
+          const uniName = (u?.universityName || '').toLowerCase();
+          return uniName.includes(searchTown) || (searchTown.length > 3 && uniName && searchTown.includes(uniName));
+        });
 
         if (!matchesTown && !matchesSuburb && !matchesAddress && !matchesUni) {
           return false;
@@ -680,7 +757,8 @@ export default function App() {
           setStudentHubInitialTab(tab || 'profile');
           setIsStudentHubOpen(true);
         }}
-        onTalkToAgent={() => setIsTalkToAgentOpen(true)}
+        onContactSupport={() => setIsContactSupportOpen(true)}
+        onTalkToAgent={() => setIsContactSupportOpen(true)}
         onSignOut={() => signOut()}
       />
 
@@ -740,9 +818,9 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                    Student Accommodations & Residences
-                  </h2>
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                    Student Accommodation in South Africa
+                  </h1>
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-100 text-lime-900 border border-lime-300">
                     2026 Academic Year
                   </span>
@@ -848,6 +926,21 @@ export default function App() {
                 )}
               </>
             )}
+
+            {/* SEO Location Hub, University Browsing & South Africa Student FAQ Directory */}
+            <LocationHubSEO
+              accommodations={accommodations}
+              onSelectLocation={(town) => {
+                setFilters((prev) => ({ ...prev, town, university: '' }));
+                const target = document.getElementById('view-mode-grid-btn');
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onSelectUniversity={(university) => {
+                setFilters((prev) => ({ ...prev, university }));
+                const target = document.getElementById('view-mode-grid-btn');
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+              }}
+            />
           </div>
         </main>
       )}
@@ -972,6 +1065,13 @@ export default function App() {
         onStartAgentChat={handleStartAgentChat}
       />
 
+      {/* 9. Dedicated Contact Support Modal (Dispatches to support@ikhayaresliving.co.za) */}
+      <ContactSupportModal
+        isOpen={isContactSupportOpen}
+        onClose={() => setIsContactSupportOpen(false)}
+        userProfile={userProfile}
+      />
+
       {/* Footer with full brand title */}
       <footer className="bg-white border-t border-slate-200 text-slate-600 text-xs py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -1004,15 +1104,16 @@ export default function App() {
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Need Placement Help?</h4>
+            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Need Placement or Support?</h4>
             <button
-              onClick={() => setIsTalkToAgentOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-lime-50 hover:bg-lime-100 text-lime-950 border border-lime-300 font-bold text-xs transition"
+              id="footer-contact-support-btn"
+              onClick={() => setIsContactSupportOpen(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-200 font-bold text-xs transition cursor-pointer"
             >
-              <Headphones className="w-3.5 h-3.5 text-lime-700" />
-              <span>Talk to an iKhaya Agent</span>
+              <LifeBuoy className="w-3.5 h-3.5 text-orange-600" />
+              <span>Contact Support</span>
             </button>
-            <p className="text-[11px] text-slate-500 pt-1">Email: support@ikhayastudentliving.co.za</p>
+            <p className="text-[11px] text-slate-500 pt-1">Email: support@ikhayaresliving.co.za</p>
             <p className="text-[11px] text-slate-400">Available Monday &ndash; Saturday</p>
           </div>
         </div>

@@ -5,7 +5,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  sendEmailVerification
 } from 'firebase/auth';
 import { 
   doc, 
@@ -19,12 +20,16 @@ import { UserProfile, UserRole, StudentProfile } from '../types';
 import { SAMPLE_STUDENT_PROFILE } from '../data/mockData';
 import { sanitizeForFirestore } from '../utils/sanitize';
 import { hashPassword } from '../utils/validators';
+import { sendAccountWelcomeEmail } from '../services/emailService';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userProfile: UserProfile | null;
   role: UserRole | null;
   loading: boolean;
+  isEmailVerified: boolean;
+  sendEmailConfirmation: (customEmail?: string) => Promise<{ success: boolean; message: string }>;
+  checkEmailVerificationStatus: () => Promise<boolean>;
   signInWithGoogle: (preferredRole?: UserRole) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string, profileData: Partial<UserProfile>) => Promise<void>;
@@ -140,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role,
               fullName: firebaseUser.displayName || (role === 'admin' ? 'System Administrator' : 'Student Resident'),
               phone: firebaseUser.phoneNumber || '+27 70 000 0000',
-              avatar: firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+              avatar: firebaseUser.photoURL || '',
               university: 'University of Johannesburg (UJ)',
               studentNumber: 'STU' + Math.floor(100000 + Math.random() * 900000),
               yearOfStudy: '2nd Year Undergrad',
@@ -182,9 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: assignedRole,
           fullName: user.displayName || (assignedRole === 'landlord' ? 'Property Landlord' : 'Student Resident'),
           phone: user.phoneNumber || '+27 70 000 0000',
-          avatar: user.photoURL || (assignedRole === 'landlord' 
-            ? 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80'
-            : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'),
+          avatar: user.photoURL || '',
           university: 'University of Johannesburg (UJ)',
           studentNumber: 'STU' + Math.floor(100000 + Math.random() * 900000),
           yearOfStudy: '2nd Year Undergrad',
@@ -198,6 +201,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await setDoc(userDocRef, sanitizeForFirestore(newProfile), { merge: true });
         setUserProfile(newProfile);
+
+        // Dispatch welcome confirmation email to newly registered Google user
+        if (newProfile.email) {
+          sendAccountWelcomeEmail({
+            userId: newProfile.id,
+            name: newProfile.fullName,
+            email: newProfile.email,
+            role: newProfile.role,
+            phone: newProfile.phone,
+            university: newProfile.university,
+            agencyName: newProfile.agencyName,
+            createdAt: newProfile.createdAt || new Date().toISOString(),
+          }).catch((e) => console.warn('Account welcome email notice:', e));
+        }
       } else {
         setUserProfile(userSnap.data() as UserProfile);
       }
@@ -323,6 +340,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.user) {
           userId = result.user.uid;
           userEmail = result.user.email || cleanEmail;
+          // Dispatch native Firebase Email Verification link
+          try {
+            await sendEmailVerification(result.user);
+          } catch (verifErr) {
+            console.warn('Firebase Auth sendEmailVerification notice:', verifErr);
+          }
         }
       } catch (authErr: any) {
         console.warn('Firebase Auth Registration notice:', authErr?.code || authErr?.message);
@@ -352,9 +375,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         idNumber: profileData.idNumber || '',
         idType: profileData.idType || 'sa_id',
         passwordHash: hashPassword(cleanPassword),
-        avatar: profileData.avatar || (role === 'landlord' 
-          ? 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80'
-          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'),
+        avatar: profileData.avatar || '',
         university: profileData.university || 'University of Johannesburg (UJ)',
         studentNumber: profileData.studentNumber || '',
         course: profileData.course || '',
@@ -379,6 +400,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUserProfile(newProfile);
+
+      // Dispatch confirmation welcome email to newly registered student/landlord
+      if (newProfile.email) {
+        sendAccountWelcomeEmail({
+          userId: newProfile.id,
+          name: newProfile.fullName,
+          email: newProfile.email,
+          role: newProfile.role,
+          phone: newProfile.phone,
+          university: newProfile.university,
+          studentNumber: newProfile.studentNumber,
+          agencyName: newProfile.agencyName,
+          createdAt: newProfile.createdAt || new Date().toISOString(),
+        }).catch((e) => console.warn('Account welcome email notice:', e));
+      }
     } catch (error: any) {
       console.error('Email Registration Error:', error);
       throw error;
@@ -416,6 +452,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isEmailVerified = Boolean(currentUser?.emailVerified);
+
+  const sendEmailConfirmation = async (customEmail?: string): Promise<{ success: boolean; message: string }> => {
+    const targetEmail = (customEmail || currentUser?.email || userProfile?.email || '').trim().toLowerCase();
+    if (!targetEmail) {
+      throw new Error('No email address available to dispatch confirmation.');
+    }
+
+    if (currentUser) {
+      try {
+        await sendEmailVerification(currentUser);
+      } catch (authErr: any) {
+        console.warn('Firebase Auth sendEmailVerification note:', authErr);
+        if (authErr?.code === 'auth/too-many-requests') {
+          return {
+            success: true,
+            message: `A verification email was recently dispatched to ${targetEmail}. Please check your inbox and spam folder.`
+          };
+        }
+      }
+    }
+
+    // Also dispatch account confirmation email via iKhaya mail queue
+    try {
+      await sendAccountWelcomeEmail({
+        userId: userProfile?.id || `user-${targetEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        name: userProfile?.fullName || targetEmail.split('@')[0],
+        email: targetEmail,
+        role: userProfile?.role || 'student',
+        phone: userProfile?.phone,
+        university: userProfile?.university,
+        studentNumber: userProfile?.studentNumber,
+        agencyName: userProfile?.agencyName,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (emailErr) {
+      console.warn('sendAccountWelcomeEmail notice:', emailErr);
+    }
+
+    return {
+      success: true,
+      message: `Confirmation email dispatched to ${targetEmail}. Please check your inbox and spam folder.`
+    };
+  };
+
+  const checkEmailVerificationStatus = async (): Promise<boolean> => {
+    if (currentUser) {
+      try {
+        await currentUser.reload();
+        return Boolean(currentUser.emailVerified);
+      } catch (err) {
+        console.warn('Could not reload currentUser:', err);
+      }
+    }
+    return false;
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -433,6 +526,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userProfile,
         role: userProfile?.role || null,
         loading,
+        isEmailVerified,
+        sendEmailConfirmation,
+        checkEmailVerificationStatus,
         signInWithGoogle,
         signInWithEmail,
         registerWithEmail,

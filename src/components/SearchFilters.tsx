@@ -92,7 +92,9 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
 
     // Score all 41 South African places based on resemblance to what was typed
     const scored = SA_LOCATIONS_CATALOG.map((loc) => {
-      const nameLower = loc.name.toLowerCase();
+      const nameLower = (loc.name || '').toLowerCase();
+      const instLower = (loc.institution || '').toLowerCase();
+      const provLower = (loc.province || '').toLowerCase();
       let score = 0;
       let matchedSuburb = '';
 
@@ -110,7 +112,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       }
       // 4. A prominent student suburb starts with query (e.g. 'Hatfield' -> Pretoria, 'Braamfontein' -> Johannesburg, 'Summerstrand' -> Gqeberha)
       else if (loc.popularSuburbs?.some((sub) => {
-        if (sub.toLowerCase().startsWith(query)) {
+        if ((sub || '').toLowerCase().startsWith(query)) {
           matchedSuburb = sub;
           return true;
         }
@@ -124,7 +126,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       }
       // 6. Suburb contains query substring
       else if (loc.popularSuburbs?.some((sub) => {
-        if (sub.toLowerCase().includes(query)) {
+        if ((sub || '').toLowerCase().includes(query)) {
           matchedSuburb = sub;
           return true;
         }
@@ -133,7 +135,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
         score = 200;
       }
       // 7. Institution or province matches query (e.g. typing 'Fort Hare', 'Wits', 'Limpopo')
-      else if (loc.institution.toLowerCase().includes(query) || loc.province.toLowerCase().includes(query)) {
+      else if (instLower.includes(query) || provLower.includes(query)) {
         score = 150;
       }
 

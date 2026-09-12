@@ -63,7 +63,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-100">
         <img
           src={imagesList[currentImageIndex] || imagesList[0]}
-          alt={property.title}
+          alt={`${property.title} - Verified Student Accommodation in ${property.suburb || property.town}, South Africa`}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
         />
 
