@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'sanelekhayantathu@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // 1. Users Collection (/users/{userId})
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if isSignedIn() && (resource.data.id == request.auth.uid || isAdmin());
+      allow create: if (
+        (isSignedIn() && isOwner(userId)) ||
+        (isValidId(userId) && incoming().email is string && incoming().role in ['student', 'landlord', 'admin'])
+      ) && incoming().fullName is string && incoming().fullName.size() <= 128;
+      allow update: if (isSignedIn() && (
+        (isOwner(userId) && incoming().id == existing().id && (incoming().role == existing().role || isAdmin())) ||
+        isAdmin()
+      )) || isValidId(userId);
+      allow delete: if isAdmin();
+    }
+
+    // 2. Accommodations Collection (/accommodations/{accommodationId})
+    match /accommodations/{accommodationId} {
+      // Public read for accommodation search & detail browsing
+      allow get, list: if true;
+      allow create: if isValidId(accommodationId);
+      allow update: if isValidId(accommodationId);
+      allow delete: if isValidId(accommodationId);
+    }
+
+    // 3. Applications Collection (/applications/{applicationId})
+    match /applications/{applicationId} {
+      allow get, list: if true;
+      allow create: if isValidId(applicationId);
+      allow update: if isValidId(applicationId);
+      allow delete: if isValidId(applicationId);
+    }
+
+    // 4. Conversations Collection (/conversations/{conversationId})
+    match /conversations/{conversationId} {
+      allow get, list: if true;
+      allow create: if isValidId(conversationId);
+      allow update: if isValidId(conversationId);
+      allow delete: if isValidId(conversationId);
+
+      // Nested Chat Messages
+      match /messages/{messageId} {
+        allow get, list: if true;
+        allow create: if isValidId(messageId);
+        allow update: if isValidId(messageId);
+        allow delete: if isValidId(messageId);
+      }
+    }
+
+    // 5. Student Documents Collection (/studentDocuments/{documentId})
+    match /studentDocuments/{documentId} {
+      allow get, list: if true;
+      allow create: if isValidId(documentId);
+      allow update: if isValidId(documentId);
+      allow delete: if isValidId(documentId);
+    }
+
+    // 6. Admin Staff Registry (/admins/{adminId})
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

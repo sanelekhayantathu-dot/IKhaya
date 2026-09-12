@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based attributes for students, landlords, and staff administrators.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["student", "landlord", "admin"] },
+        "fullName": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "avatar": { "type": "string", "maxLength": 1024 },
+        "university": { "type": "string", "maxLength": 128 },
+        "studentNumber": { "type": "string", "maxLength": 64 },
+        "idNumber": { "type": "string", "maxLength": 64 },
+        "idType": { "type": "string", "enum": ["sa_id", "passport"] },
+        "course": { "type": "string", "maxLength": 128 },
+        "yearOfStudy": { "type": "string", "maxLength": 64 },
+        "fundingType": { "type": "string", "maxLength": 64 },
+        "agencyName": { "type": "string", "maxLength": 128 },
+        "savedProperties": { "type": "array" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role", "fullName"]
+    },
+    "Accommodation": {
+      "title": "Accommodation",
+      "description": "Student residence listing posted and managed by accredited landlords or property agents.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "landlordId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 180 },
+        "slug": { "type": "string", "maxLength": 180 },
+        "tagline": { "type": "string", "maxLength": 256 },
+        "town": { "type": "string", "maxLength": 64 },
+        "suburb": { "type": "string", "maxLength": 64 },
+        "streetAddress": { "type": "string", "maxLength": 256 },
+        "priceFrom": { "type": "number" },
+        "priceTo": { "type": "number" },
+        "depositAmount": { "type": "number" },
+        "nsfasAccredited": { "type": "boolean" },
+        "hasBackupPower": { "type": "boolean" },
+        "allBillsIncluded": { "type": "boolean" },
+        "instantBookAvailable": { "type": "boolean" },
+        "type": { "type": "string", "maxLength": 64 },
+        "genderPolicy": { "type": "string", "maxLength": 32 },
+        "approvalStatus": { "type": "string", "enum": ["Approved", "Pending Approval", "Rejected"] },
+        "moderationNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "landlordId", "title", "town", "priceFrom"]
+    },
+    "BookingApplication": {
+      "title": "BookingApplication",
+      "description": "Rental application submitted by a student for a specific room in a student residence.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 128 },
+        "studentEmail": { "type": "string", "maxLength": 256 },
+        "propertyId": { "type": "string", "maxLength": 128 },
+        "propertyTitle": { "type": "string", "maxLength": 180 },
+        "landlordId": { "type": "string", "maxLength": 128 },
+        "roomId": { "type": "string", "maxLength": 128 },
+        "monthlyRent": { "type": "number" },
+        "deposit": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending Review", "Accepted", "Declined", "Viewing Scheduled"] },
+        "appliedDate": { "type": "string", "maxLength": 64 },
+        "moveInDate": { "type": "string", "maxLength": 64 },
+        "leaseDuration": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "studentId", "propertyId", "landlordId", "status"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Messaging thread between a student and a landlord regarding a student residence.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "propertyId": { "type": "string", "maxLength": 128 },
+        "propertyTitle": { "type": "string", "maxLength": 180 },
+        "landlordId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "lastMessage": { "type": "string", "maxLength": 1000 },
+        "lastMessageTime": { "type": "string", "maxLength": 64 },
+        "unreadCount": { "type": "number" }
+      },
+      "required": ["id", "propertyId", "landlordId", "studentId"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Direct message within a student-landlord conversation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "conversationId": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 128 },
+        "senderRole": { "type": "string", "enum": ["student", "landlord"] },
+        "text": { "type": "string", "maxLength": 2000 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["id", "conversationId", "senderId", "senderRole", "text"]
+    },
+    "StudentDocument": {
+      "title": "StudentDocument",
+      "description": "Student verification document submitted to the encrypted vault for administrative verification.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 128 },
+        "studentEmail": { "type": "string", "maxLength": 256 },
+        "studentUniversity": { "type": "string", "maxLength": 128 },
+        "documentType": { "type": "string", "maxLength": 64 },
+        "documentName": { "type": "string", "maxLength": 180 },
+        "status": { "type": "string", "enum": ["Verified", "Pending Verification", "Requires Update", "Declined"] },
+        "uploadedAt": { "type": "string", "maxLength": 64 },
+        "fileUrl": { "type": "string", "maxLength": 1024 },
+        "adminNotes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "studentId", "documentType", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles for students, landlords, and staff administrators."
+    },
+    "/accommodations/{accommodationId}": {
+      "schema": "Accommodation",
+      "description": "Student accommodation listings created by landlords and audited by admins."
+    },
+    "/applications/{applicationId}": {
+      "schema": "BookingApplication",
+      "description": "Booking and rental applications submitted by students to landlords."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Chat threads between students and landlords."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Individual chat messages inside a conversation."
+    },
+    "/studentDocuments/{documentId}": {
+      "schema": "StudentDocument",
+      "description": "Encrypted rental documents submitted for accreditation audit."
+    },
+    "/admins/{adminId}": {
+      "schema": "User",
+      "description": "Staff administrator registry."
+    }
+  }
+}
