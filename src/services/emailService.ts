@@ -43,17 +43,31 @@ export const SUPPORT_PHONE = '+27 11 234 5678';
 export const SUPPORT_WHATSAPP = '27720000000';
 
 /**
- * Attempts direct HTTP email delivery via FormSubmit email gateway
+ * Attempts direct HTTP email delivery via email gateway with official iKhaya Res Living sender branding
  */
 async function dispatchLiveEmailViaHttp(targetEmail: string, payload: Record<string, any>): Promise<boolean> {
   try {
+    const senderDisplayName = payload.senderName || payload.name || 'iKhaya Res Living';
+    const brandedPayload = {
+      _sender: 'iKhaya Res Living',
+      _from: 'iKhaya Res Living <support@ikhayaresliving.co.za>',
+      _replyto: payload._replyto || SUPPORT_EMAIL,
+      _template: payload._template || 'box',
+      _captcha: 'false',
+      ...payload,
+      // Enforce the 'name' field which FormSubmit uses for the email's display sender
+      name: senderDisplayName,
+      Sender: senderDisplayName,
+      Platform: 'iKhaya Res Living (https://ikhayaresliving.co.za)',
+    };
+
     const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(targetEmail)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(brandedPayload),
     });
     return res.ok;
   } catch (err) {
@@ -287,18 +301,19 @@ https://ikhayaresliving.co.za
 
   // Dispatch confirmation email to client
   dispatchLiveEmailViaHttp(ticket.email, {
-    _subject: `Confirmation: Support Query #${ticket.ticketNumber} Sent Successfully - iKhaya Res Living`,
+    senderName: 'iKhaya Res Living Support Desk',
+    _subject: `Confirmation: Support Query #${ticket.ticketNumber} Received - iKhaya Res Living`,
     _replyto: SUPPORT_EMAIL,
     _captcha: 'false',
-    _template: 'table',
-    status: 'Your query was sent successfully',
-    ticketNumber: `#${ticket.ticketNumber}`,
-    supportEmail: SUPPORT_EMAIL,
-    supportPhone: SUPPORT_PHONE,
-    subject: ticket.subject,
-    category: ticket.category,
-    message: ticket.message,
-    notice: `Hello ${ticket.name}, your query has been sent successfully to the iKhaya Res Living support desk (support@ikhayaresliving.co.za). A support team member is reviewing your query and will reply directly to ${ticket.email}.`
+    _template: 'box',
+    Status: 'Your query was received successfully',
+    Ticket_Number: `#${ticket.ticketNumber}`,
+    Support_Desk: SUPPORT_EMAIL,
+    Support_Phone: SUPPORT_PHONE,
+    Subject: ticket.subject,
+    Category: ticket.category,
+    Your_Message: ticket.message,
+    Notice: `Hello ${ticket.name}, your query has been submitted successfully to the iKhaya Res Living support desk (${SUPPORT_EMAIL}). A support representative has been assigned and will reply directly to ${ticket.email}.`
   }).catch(() => null);
 
   // Record locally for immediate UI receipt & confirmation verification
@@ -325,8 +340,10 @@ export async function sendAccountWelcomeEmail(data: AccountWelcomeData): Promise
 
   const welcomePayload = {
     to: [data.email],
+    from: 'iKhaya Res Living <support@ikhayaresliving.co.za>',
     replyTo: SUPPORT_EMAIL,
     message: {
+      from: 'iKhaya Res Living <support@ikhayaresliving.co.za>',
       subject: `Welcome to iKhaya Res Living - Account Created Successfully!`,
       text: `
 Hello ${data.name},
@@ -427,17 +444,18 @@ https://ikhayaresliving.co.za
     console.warn('Welcome email dispatch notice (saved locally):', error);
   }
 
-  // Also dispatch live via FormSubmit HTTP gateway
+  // Also dispatch live via email gateway with official iKhaya branding
   dispatchLiveEmailViaHttp(data.email, {
+    senderName: 'iKhaya Res Living',
     _subject: `Welcome to iKhaya Res Living - Account Created Successfully!`,
     _replyto: SUPPORT_EMAIL,
-    _cc: SUPPORT_EMAIL,
-    name: data.name,
-    email: data.email,
-    role: data.role,
-    university: data.university || 'General',
-    agencyName: data.agencyName || 'N/A',
-    message: `Your account (${data.email}) has been successfully created with iKhaya Res Living. If you ever need support, email us at ${SUPPORT_EMAIL}.`
+    _template: 'box',
+    Account_Holder: data.name,
+    Account_Role: isLandlord ? 'Accredited Landlord / Residence Provider' : 'Student Resident',
+    Email: data.email,
+    Institution: data.university || data.agencyName || 'Tertiary Education Partner',
+    Support_Desk: SUPPORT_EMAIL,
+    Notice: `Hello ${data.name}, welcome to iKhaya Res Living! Your account has been registered successfully. Explore verified student accommodations or manage property listings securely at https://ikhayaresliving.co.za.`
   }).catch(() => null);
 
   // Record locally for audit & immediate UI confirmation receipt
@@ -448,6 +466,117 @@ https://ikhayaresliving.co.za
     type: 'welcome',
     dispatchedAt: timestamp,
     snippet: `Account registration confirmation dispatched to ${data.email} for ${data.name} (${data.role})`
+  });
+}
+
+/**
+ * Dispatches notification emails when a student submits a rental application
+ */
+export async function sendApplicationSubmittedNotification(
+  app: {
+    id: string;
+    propertyTitle: string;
+    roomName: string;
+    monthlyRent: number;
+    moveInDate: string;
+    studentName: string;
+    studentEmail: string;
+    studentPhone: string;
+    studentUniversity: string;
+  },
+  landlordEmail?: string
+): Promise<void> {
+  const timestamp = new Date().toISOString();
+  const recipientLandlord = landlordEmail && landlordEmail.includes('@') ? landlordEmail : SUPPORT_EMAIL;
+
+  // 1. Notification to Landlord
+  dispatchLiveEmailViaHttp(recipientLandlord, {
+    senderName: 'iKhaya Res Living',
+    _subject: `[iKhaya Res Living] New Student Application: ${app.propertyTitle} (${app.roomName})`,
+    _replyto: app.studentEmail,
+    _template: 'box',
+    Notification: 'New Student Rental Application',
+    Property: app.propertyTitle,
+    Room_Selected: app.roomName,
+    Applicant_Name: app.studentName,
+    Applicant_Email: app.studentEmail,
+    Applicant_Phone: app.studentPhone,
+    University: app.studentUniversity,
+    Monthly_Rent: `R ${app.monthlyRent.toLocaleString('en-ZA')}`,
+    Requested_Move_In: app.moveInDate,
+    Notice: `A student has submitted an application for ${app.propertyTitle}. Review and update the application status in your Landlord Portal at https://ikhayaresliving.co.za.`
+  }).catch(() => null);
+
+  // 2. Receipt to Student
+  dispatchLiveEmailViaHttp(app.studentEmail, {
+    senderName: 'iKhaya Res Living',
+    _subject: `[iKhaya Res Living] Application Confirmation: ${app.propertyTitle}`,
+    _replyto: SUPPORT_EMAIL,
+    _template: 'box',
+    Status: 'Application Submitted Successfully',
+    Property: app.propertyTitle,
+    Room_Selected: app.roomName,
+    Status_Notice: 'Pending Landlord Review',
+    Monthly_Rent: `R ${app.monthlyRent.toLocaleString('en-ZA')}`,
+    Expected_Move_In: app.moveInDate,
+    Support_Desk: SUPPORT_EMAIL,
+    Notice: `Hello ${app.studentName}, your application for ${app.propertyTitle} (${app.roomName}) has been sent to the residence provider. You can monitor your application status anytime in your Student Profile Hub on iKhaya Res Living.`
+  }).catch(() => null);
+
+  recordLocalEmailDispatch({
+    id: `app-sub-${app.id}`,
+    to: app.studentEmail,
+    subject: `[iKhaya Res Living] Application Confirmation: ${app.propertyTitle}`,
+    type: 'verification',
+    dispatchedAt: timestamp,
+    snippet: `Application for ${app.propertyTitle} sent to landlord (${recipientLandlord}) and confirmation to ${app.studentEmail}`
+  });
+}
+
+/**
+ * Dispatches notification email to student when landlord updates application status
+ */
+export async function sendApplicationStatusUpdateNotification(
+  app: {
+    id: string;
+    propertyTitle: string;
+    roomName: string;
+    studentName: string;
+    studentEmail: string;
+  },
+  newStatus: string,
+  landlordName?: string
+): Promise<void> {
+  const timestamp = new Date().toISOString();
+  const isAccepted = newStatus === 'Accepted';
+  const isDeclined = newStatus === 'Declined';
+  const statusFormatted = isAccepted ? 'APPROVED & ACCEPTED' : isDeclined ? 'DECLINED' : newStatus;
+
+  dispatchLiveEmailViaHttp(app.studentEmail, {
+    senderName: 'iKhaya Res Living',
+    _subject: `[iKhaya Res Living] Application Status: ${statusFormatted} - ${app.propertyTitle}`,
+    _replyto: SUPPORT_EMAIL,
+    _template: 'box',
+    Notification: 'Application Status Update',
+    Property: app.propertyTitle,
+    Room_Selected: app.roomName,
+    Status: statusFormatted,
+    Updated_By: landlordName || 'Residence Housing Management',
+    Support_Desk: SUPPORT_EMAIL,
+    Notice: isAccepted
+      ? `Congratulations ${app.studentName}! Your application for ${app.propertyTitle} (${app.roomName}) has been ACCEPTED by ${landlordName || 'the landlord'}. Please log in to iKhaya Res Living to view your lease documents and move-in details.`
+      : isDeclined
+      ? `Hello ${app.studentName}, your application for ${app.propertyTitle} (${app.roomName}) was not accepted. Browse other verified and NSFAS-accredited residences on iKhaya Res Living.`
+      : `Hello ${app.studentName}, your application for ${app.propertyTitle} has been updated to "${newStatus}". Log in to iKhaya Res Living to view details.`
+  }).catch(() => null);
+
+  recordLocalEmailDispatch({
+    id: `app-stat-${app.id}`,
+    to: app.studentEmail,
+    subject: `[iKhaya Res Living] Application Status: ${statusFormatted}`,
+    type: 'verification',
+    dispatchedAt: timestamp,
+    snippet: `Application status (${statusFormatted}) dispatched to student ${app.studentEmail}`
   });
 }
 

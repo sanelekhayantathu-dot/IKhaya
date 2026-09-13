@@ -437,7 +437,7 @@ Accreditation Standard: DHET Policy on Minimum Norms & Standards for Student Hou
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-300 px-2 py-0.5 rounded">
-                        2026 ACADEMIC YEAR
+                        OFFICIAL ENROLLMENT
                       </span>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ Accreditation Standard: DHET Policy on Minimum Norms & Standards for Student Hou
                       CERTIFICATE OF REGISTRATION & ACADEMIC STATUS
                     </h5>
                     <p className="text-[11px] text-slate-500">
-                      This document confirms that the undermentioned student is formally enrolled for the 2026 academic term.
+                      This document confirms that the undermentioned student is formally enrolled for the current academic term.
                     </p>
                   </div>
 

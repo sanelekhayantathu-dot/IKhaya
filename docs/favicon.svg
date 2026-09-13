@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="orangeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B00" />
+      <stop offset="100%" stop-color="#FF4D00" />
+    </linearGradient>
+  </defs>
+
+  <!-- Orange Squircle Badge -->
+  <rect width="512" height="512" rx="120" fill="url(#orangeBg)" />
+
+  <!-- House Roof & Chimney Structure -->
+  <g fill="#FFFFFF">
+    <!-- Chimney -->
+    <path d="M120 185 h28 v45 l-28 20 z" />
+    <path d="M116 182 h36 v8 h-36 z" />
+
+    <!-- Roof Main Beams -->
+    <path d="M235 145 L70 268 l14 18 L235 174 l152 112 14-18 L235 145z" />
+
+    <!-- 4-Pane Window in Gable -->
+    <rect x="208" y="195" width="22" height="22" rx="2" />
+    <rect x="238" y="195" width="22" height="22" rx="2" />
+    <rect x="208" y="225" width="22" height="22" rx="2" />
+    <rect x="238" y="225" width="22" height="22" rx="2" />
+
+    <!-- Left wall connection -->
+    <path d="M96 276 v74 h20 v-58 l-20-16z" />
+  </g>
+
+  <!-- 'i' in White -->
+  <g fill="#FFFFFF">
+    <rect x="126" y="258" width="22" height="22" rx="3" />
+    <rect x="126" y="292" width="22" height="58" rx="3" />
+  </g>
+
+  <!-- 'Khaya' in Bold Black -->
+  <text x="156" y="348" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="106" fill="#141414" letter-spacing="-3">Khaya</text>
+
+  <!-- White Swoosh / Underline Flourish -->
+  <path d="M142 364 Q 290 357 440 361 Q 300 372 142 364 Z" fill="#FFFFFF" />
+</svg>

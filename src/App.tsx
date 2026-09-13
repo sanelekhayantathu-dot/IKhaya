@@ -61,6 +61,10 @@ import { StudentProfileHubModal } from './components/StudentProfileHubModal';
 import { TalkToAgentModal } from './components/TalkToAgentModal';
 import { ContactSupportModal } from './components/ContactSupportModal';
 import { BrandLogo } from './components/BrandLogo';
+import { 
+  sendApplicationSubmittedNotification, 
+  sendApplicationStatusUpdateNotification 
+} from './services/emailService';
 
 export default function App() {
   const { userProfile, signOut, signInWithDemo, updateProfileData } = useAuth();
@@ -398,6 +402,12 @@ export default function App() {
 
   const handleBookingSubmit = async (newApp: BookingApplication) => {
     await submitApplication(newApp);
+    // Find landlord email from property
+    const acc = accommodations.find((a) => a.id === newApp.propertyId);
+    const landlordEmail = acc?.landlord?.email;
+    sendApplicationSubmittedNotification(newApp, landlordEmail).catch((err) => {
+      console.warn('Could not dispatch application submitted notification:', err);
+    });
   };
 
   // Handle Direct Message Trigger (Auth Guarded)
@@ -443,7 +453,7 @@ export default function App() {
         senderName: studentName,
         senderRole: 'student',
         senderAvatar: studentAvatar,
-        text: `Hi ${landlordName}, I am interested in viewing or booking a room at ${property.title} for the 2026 academic year. Is it still available?`,
+        text: `Hi ${landlordName}, I am interested in viewing or booking a room at ${property.title}. Is it still available?`,
         timestamp: 'Just now',
         isRead: true,
       };
@@ -673,6 +683,16 @@ export default function App() {
   // Landlord Application status update
   const handleUpdateApplicationStatus = async (appId: string, status: BookingApplication['status']) => {
     await updateApplicationStatus(appId, status);
+    const targetApp = applications.find((a) => a.id === appId);
+    if (targetApp) {
+      sendApplicationStatusUpdateNotification(
+        targetApp,
+        status,
+        userProfile?.fullName || 'Residence Housing Provider'
+      ).catch((err) => {
+        console.warn('Could not dispatch application status update notification:', err);
+      });
+    }
   };
 
   // Landlord Add Listing Handler
@@ -816,14 +836,9 @@ export default function App() {
             {/* View Mode Toolbar: Grid Cards vs Accommodation Search Map */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
               <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                    Student Accommodation in South Africa
-                  </h1>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-lime-100 text-lime-900 border border-lime-300">
-                    2026 Academic Year
-                  </span>
-                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                  Student Accommodation in South Africa
+                </h1>
                 <p className="text-xs text-slate-500">
                   Verified student housing with accredited walking distances, NSFAS coverage, and backup power
                 </p>
