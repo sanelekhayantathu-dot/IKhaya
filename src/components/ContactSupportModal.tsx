@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  LifeBuoy,
   Send,
   Mail,
   Phone,
@@ -14,11 +13,17 @@ import {
   ExternalLink,
   MessageSquareText,
   Copy,
-  Check
+  Check,
+  MessageCircle
 } from 'lucide-react';
 import { UserProfile, StudentProfile } from '../types';
 import { submitSupportTicket } from '../services/supportService';
-import { SupportTicketData } from '../services/emailService';
+import { 
+  SupportTicketData,
+  SUPPORT_EMAIL,
+  SUPPORT_PHONE,
+  SUPPORT_WHATSAPP
+} from '../services/emailService';
 
 interface ContactSupportModalProps {
   isOpen: boolean;
@@ -162,7 +167,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
 
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white shrink-0 shadow-xs">
-              <LifeBuoy className="w-6 h-6" />
+              <Phone className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -178,12 +183,15 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
             </div>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-white/20 flex items-center justify-between text-[11px] text-white/90">
+          <div className="mt-3 pt-2.5 border-t border-white/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-white/90">
             <div className="flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-orange-200" />
-              <span>Direct: <strong className="font-mono text-white">support@ikhayaresliving.co.za</strong></span>
+              <span>Email: <strong className="font-mono text-white">support@ikhayaresliving.co.za</strong></span>
             </div>
-            <span className="hidden sm:inline text-white/80">&bull; Confirmations sent automatically</span>
+            <div className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-orange-200" />
+              <span>Tel: <a href={`tel:${SUPPORT_PHONE}`} className="font-mono text-white hover:underline">{SUPPORT_PHONE}</a></span>
+            </div>
           </div>
         </div>
 
@@ -192,14 +200,14 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
           {submittedTicket ? (
             /* SUCCESS CONFIRMATION STATE */
             <div className="space-y-4 text-center py-2 animate-in fade-in duration-200">
-              <div className="w-14 h-14 rounded-full bg-lime-100 text-lime-600 mx-auto flex items-center justify-center shadow-xs">
-                <CheckCircle2 className="w-8 h-8" />
+              <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto border-2 border-emerald-300">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-slate-900">Query Submitted Successfully!</h3>
-                <p className="text-xs text-slate-600 max-w-sm mx-auto">
-                  Our support team has received your inquiry and a confirmation has been sent to your email.
+                <h3 className="text-lg font-bold text-slate-900">Query Sent Successfully!</h3>
+                <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+                  Your query has been submitted to <strong className="text-slate-800">support@ikhayaresliving.co.za</strong> and an automated confirmation has been sent to <strong className="text-slate-800">{submittedTicket.email}</strong>.
                 </p>
               </div>
 
@@ -214,7 +222,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                     <button
                       type="button"
                       onClick={copyTicketId}
-                      className="p-1 text-slate-400 hover:text-slate-600 transition"
+                      className="p-1 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                       title="Copy ticket number"
                     >
                       {copiedTicket ? <Check className="w-3.5 h-3.5 text-lime-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -222,7 +230,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                   </div>
                 </div>
 
-                <div className="border-t border-slate-200 pt-2 text-xs space-y-1 text-slate-700">
+                <div className="border-t border-slate-200 pt-2 text-xs space-y-1.5 text-slate-700">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Destination:</span>
                     <span className="font-mono text-[11px] font-semibold text-slate-800">support@ikhayaresliving.co.za</span>
@@ -235,33 +243,40 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                     <span className="text-slate-500">Subject:</span>
                     <span className="font-semibold text-slate-800 truncate max-w-[200px]">{submittedTicket.subject}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Delivery Status:</span>
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sent &amp; In Queue
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-orange-50/60 rounded-xl border border-orange-200 text-[11px] text-orange-950 text-left flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
-                <span>
-                  Please check your inbox (or spam folder) for the automated confirmation receipt with your ticket summary. Our team aims to reply within 24 hours.
-                </span>
+              {/* Confirmation Details Card */}
+              <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 text-left flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <p className="font-bold text-emerald-900">Confirmation Email Dispatched</p>
+                  <p className="text-emerald-800 mt-0.5">
+                    We sent a confirmation email to <strong>{submittedTicket.email}</strong> stating that your query was received successfully. Our support desk will review your inquiry and respond directly to your email address. You do not need to do anything further.
+                  </p>
+                </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
-                <a
-                  href={`mailto:support@ikhayaresliving.co.za?subject=Support Query %23${submittedTicket.ticketNumber} - ${encodeURIComponent(submittedTicket.subject)}`}
-                  className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-1.5"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in Email App</span>
-                </a>
+              {/* Close Button */}
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 >
                   Done
                 </button>
               </div>
+
+              <p className="text-[11px] text-slate-400">
+                For urgent emergencies, you can call us at <a href={`tel:${SUPPORT_PHONE}`} className="font-bold text-slate-600 hover:underline">{SUPPORT_PHONE}</a>
+              </p>
             </div>
           ) : (
             /* SUPPORT QUERY SUBMISSION FORM */

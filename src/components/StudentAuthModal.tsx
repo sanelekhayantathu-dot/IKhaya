@@ -19,7 +19,8 @@ import {
   IdCard,
   AlertCircle,
   MailCheck,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { StudentProfile, UserProfile, UserRole } from '../types';
 import { UNIVERSITIES_LIST, TOWNS_LIST } from '../data/mockData';
@@ -217,13 +218,7 @@ export const StudentAuthModal: React.FC<StudentAuthModalProps> = ({
       newFieldErrors.phone = phoneRes.error || 'Valid phone number is required.';
     }
 
-    // 5. Student Number validation
-    const stuRes = validateStudentNumber(cleanStudentNum);
-    if (!stuRes.isValid) {
-      newFieldErrors.studentNumber = stuRes.error || 'Valid student number from your tertiary institution is required.';
-    }
-
-    // 6. Password & Confirmation validation
+    // 5. Password & Confirmation validation
     const passRes = validatePassword(password);
     if (!passRes.isValid) {
       newFieldErrors.password = passRes.error || 'Password must be at least 6 characters long.';
@@ -841,48 +836,24 @@ export const StudentAuthModal: React.FC<StudentAuthModalProps> = ({
                     )}
                   </div>
 
-                  {/* Tertiary Institution & Student Number */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        University / Tertiary Institution *
-                      </label>
-                      <div className="relative">
-                        <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                        <select
-                          value={university}
-                          onChange={(e) => setUniversity(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white transition"
-                        >
-                          {UNIVERSITIES_LIST.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Student Number / ID *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. 219084721"
-                        value={studentNumber}
-                        onChange={(e) => {
-                          setStudentNumber(e.target.value);
-                          if (fieldErrors.studentNumber) setFieldErrors(prev => ({ ...prev, studentNumber: '' }));
-                        }}
-                        className={`w-full px-3 py-2 bg-slate-50 border rounded-xl text-xs text-slate-900 focus:outline-hidden focus:bg-white transition ${
-                          fieldErrors.studentNumber ? 'border-rose-400 bg-rose-50/30' : 'border-slate-200 focus:border-orange-500'
-                        }`}
-                      />
-                      {fieldErrors.studentNumber && (
-                        <p className="text-[11px] text-rose-600 font-medium mt-1">{fieldErrors.studentNumber}</p>
-                      )}
+                  {/* Tertiary Institution */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      University / Tertiary Institution *
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <select
+                        value={university}
+                        onChange={(e) => setUniversity(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white transition"
+                      >
+                        {UNIVERSITIES_LIST.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -1318,17 +1289,8 @@ export const StudentAuthModal: React.FC<StudentAuthModalProps> = ({
               <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
                 <button
                   type="button"
-                  disabled={isResendingEmail}
-                  onClick={() => handleResendConfirmation(registeredStudentEmail || email)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isResendingEmail ? 'animate-spin' : ''}`} />
-                  <span>{isResendingEmail ? 'Sending...' : 'Resend Confirmation Email'}</span>
-                </button>
-                <button
-                  type="button"
                   onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   Continue & Explore Accommodations
                 </button>
@@ -1372,17 +1334,8 @@ export const StudentAuthModal: React.FC<StudentAuthModalProps> = ({
               <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
                 <button
                   type="button"
-                  disabled={isResendingEmail}
-                  onClick={() => handleResendConfirmation(landlordEmail)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isResendingEmail ? 'animate-spin' : ''}`} />
-                  <span>{isResendingEmail ? 'Sending...' : 'Resend Confirmation Email'}</span>
-                </button>
-                <button
-                  type="button"
                   onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl bg-lime-600 hover:bg-lime-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-lime-600 hover:bg-lime-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   Continue to iKhaya Portal
                 </button>

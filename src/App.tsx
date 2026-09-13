@@ -23,7 +23,7 @@ import {
   Headphones,
   UserCheck,
   ShieldAlert,
-  LifeBuoy
+  Phone
 } from 'lucide-react';
 import { 
   Accommodation, 
@@ -60,7 +60,6 @@ import { StudentAuthModal } from './components/StudentAuthModal';
 import { StudentProfileHubModal } from './components/StudentProfileHubModal';
 import { TalkToAgentModal } from './components/TalkToAgentModal';
 import { ContactSupportModal } from './components/ContactSupportModal';
-import { LocationHubSEO } from './components/LocationHubSEO';
 import { BrandLogo } from './components/BrandLogo';
 
 export default function App() {
@@ -926,21 +925,6 @@ export default function App() {
                 )}
               </>
             )}
-
-            {/* SEO Location Hub, University Browsing & South Africa Student FAQ Directory */}
-            <LocationHubSEO
-              accommodations={accommodations}
-              onSelectLocation={(town) => {
-                setFilters((prev) => ({ ...prev, town, university: '' }));
-                const target = document.getElementById('view-mode-grid-btn');
-                if (target) target.scrollIntoView({ behavior: 'smooth' });
-              }}
-              onSelectUniversity={(university) => {
-                setFilters((prev) => ({ ...prev, university }));
-                const target = document.getElementById('view-mode-grid-btn');
-                if (target) target.scrollIntoView({ behavior: 'smooth' });
-              }}
-            />
           </div>
         </main>
       )}
@@ -1110,7 +1094,7 @@ export default function App() {
               onClick={() => setIsContactSupportOpen(true)}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-200 font-bold text-xs transition cursor-pointer"
             >
-              <LifeBuoy className="w-3.5 h-3.5 text-orange-600" />
+              <Phone className="w-3.5 h-3.5 text-orange-600" />
               <span>Contact Support</span>
             </button>
             <p className="text-[11px] text-slate-500 pt-1">Email: support@ikhayaresliving.co.za</p>

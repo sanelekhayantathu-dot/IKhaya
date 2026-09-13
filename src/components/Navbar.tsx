@@ -18,7 +18,7 @@ import {
   Plus,
   Settings,
   Lock,
-  LifeBuoy
+  Phone
 } from 'lucide-react';
 import { UserProfile, UserRole, StudentProfile } from '../types';
 import { BrandLogo } from './BrandLogo';
@@ -121,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-200 text-xs font-bold transition shadow-2xs group cursor-pointer"
                 title="Contact iKhaya Res Living Support (support@ikhayaresliving.co.za)"
               >
-                <LifeBuoy className="w-3.5 h-3.5 text-orange-600 group-hover:rotate-45 transition-transform" />
+                <Phone className="w-3.5 h-3.5 text-orange-600 group-hover:rotate-12 transition-transform" />
                 <span>Contact Support</span>
               </button>
             )}
@@ -471,7 +471,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           }}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 text-slate-700 hover:text-orange-700 text-xs font-semibold transition cursor-pointer"
                         >
-                          <LifeBuoy className="w-4 h-4 text-orange-600" />
+                          <Phone className="w-4 h-4 text-orange-600" />
                           <span>Contact Support</span>
                         </button>
                       )}

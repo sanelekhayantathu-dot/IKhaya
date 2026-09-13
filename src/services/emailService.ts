@@ -38,7 +38,29 @@ export interface DispatchedEmailRecord {
   snippet: string;
 }
 
-const SUPPORT_EMAIL = 'support@ikhayaresliving.co.za';
+export const SUPPORT_EMAIL = 'support@ikhayaresliving.co.za';
+export const SUPPORT_PHONE = '+27 11 234 5678';
+export const SUPPORT_WHATSAPP = '27720000000';
+
+/**
+ * Attempts direct HTTP email delivery via FormSubmit email gateway
+ */
+async function dispatchLiveEmailViaHttp(targetEmail: string, payload: Record<string, any>): Promise<boolean> {
+  try {
+    const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(targetEmail)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('HTTP live email gateway notification:', err);
+    return false;
+  }
+}
 
 /**
  * Saves a dispatched email log locally so the user can verify delivery even in offline/preview environments
@@ -243,6 +265,42 @@ https://ikhayaresliving.co.za
     console.warn('Email dispatch notice (saved locally):', error);
   }
 
+  // Also dispatch live via FormSubmit HTTP gateway directly to support desk and cc student
+  dispatchLiveEmailViaHttp(SUPPORT_EMAIL, {
+    _subject: `[New Support Query #${ticket.ticketNumber}] ${ticket.subject}`,
+    _replyto: ticket.email,
+    _cc: ticket.email,
+    _captcha: 'false',
+    _template: 'table',
+    _autoresponse: `Thank you for contacting iKhaya Res Living Support! Your query (Reference #${ticket.ticketNumber}) regarding "${ticket.subject}" has been received successfully. Our support desk has logged your request and a representative will reply directly to you at ${ticket.email}.`,
+    ticketNumber: ticket.ticketNumber,
+    name: ticket.name,
+    email: ticket.email,
+    phone: ticket.phone || 'N/A',
+    role: ticket.role,
+    category: ticket.category,
+    urgency: ticket.urgency || 'normal',
+    university: ticket.university || 'General',
+    message: ticket.message,
+    submissionTime: timestamp
+  }).catch(() => null);
+
+  // Dispatch confirmation email to client
+  dispatchLiveEmailViaHttp(ticket.email, {
+    _subject: `Confirmation: Support Query #${ticket.ticketNumber} Sent Successfully - iKhaya Res Living`,
+    _replyto: SUPPORT_EMAIL,
+    _captcha: 'false',
+    _template: 'table',
+    status: 'Your query was sent successfully',
+    ticketNumber: `#${ticket.ticketNumber}`,
+    supportEmail: SUPPORT_EMAIL,
+    supportPhone: SUPPORT_PHONE,
+    subject: ticket.subject,
+    category: ticket.category,
+    message: ticket.message,
+    notice: `Hello ${ticket.name}, your query has been sent successfully to the iKhaya Res Living support desk (support@ikhayaresliving.co.za). A support team member is reviewing your query and will reply directly to ${ticket.email}.`
+  }).catch(() => null);
+
   // Record locally for immediate UI receipt & confirmation verification
   recordLocalEmailDispatch({
     id: userMailId,
@@ -369,6 +427,19 @@ https://ikhayaresliving.co.za
     console.warn('Welcome email dispatch notice (saved locally):', error);
   }
 
+  // Also dispatch live via FormSubmit HTTP gateway
+  dispatchLiveEmailViaHttp(data.email, {
+    _subject: `Welcome to iKhaya Res Living - Account Created Successfully!`,
+    _replyto: SUPPORT_EMAIL,
+    _cc: SUPPORT_EMAIL,
+    name: data.name,
+    email: data.email,
+    role: data.role,
+    university: data.university || 'General',
+    agencyName: data.agencyName || 'N/A',
+    message: `Your account (${data.email}) has been successfully created with iKhaya Res Living. If you ever need support, email us at ${SUPPORT_EMAIL}.`
+  }).catch(() => null);
+
   // Record locally for audit & immediate UI confirmation receipt
   recordLocalEmailDispatch({
     id: mailId,
@@ -378,4 +449,115 @@ https://ikhayaresliving.co.za
     dispatchedAt: timestamp,
     snippet: `Account registration confirmation dispatched to ${data.email} for ${data.name} (${data.role})`
   });
+}
+
+/**
+ * Builds a direct pre-filled mailto URL with CC to user
+ */
+export function generateSupportMailtoUrl(ticket: SupportTicketData): string {
+  const subject = `[iKhaya Support Query #${ticket.ticketNumber}] ${ticket.subject}`;
+  const body = `Dear iKhaya Res Living Support Team,
+
+I am writing regarding my support query (Ticket Reference: #${ticket.ticketNumber}).
+
+User Details:
+- Name: ${ticket.name}
+- Email: ${ticket.email}
+- Phone: ${ticket.phone || 'N/A'}
+- Role: ${ticket.role.toUpperCase()}
+- Category: ${ticket.category}
+- University / Campus: ${ticket.university || 'General'}
+- Ticket ID: #${ticket.ticketNumber}
+
+Query:
+----------------------------------------
+${ticket.message}
+----------------------------------------
+
+Please follow up with me at ${ticket.email}.
+
+Kind regards,
+${ticket.name}`;
+
+  return `mailto:${SUPPORT_EMAIL}?cc=${encodeURIComponent(ticket.email)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Builds a direct Gmail Web compose URL pre-addressed to support@ikhayaresliving.co.za with CC to user
+ */
+export function generateSupportGmailUrl(ticket: SupportTicketData): string {
+  const subject = `[iKhaya Support Query #${ticket.ticketNumber}] ${ticket.subject}`;
+  const body = `Dear iKhaya Res Living Support Team,
+
+I am writing regarding my support query (Ticket Reference: #${ticket.ticketNumber}).
+
+User Details:
+- Name: ${ticket.name}
+- Email: ${ticket.email}
+- Phone: ${ticket.phone || 'N/A'}
+- Role: ${ticket.role.toUpperCase()}
+- Category: ${ticket.category}
+- University / Campus: ${ticket.university || 'General'}
+- Ticket ID: #${ticket.ticketNumber}
+
+Query:
+----------------------------------------
+${ticket.message}
+----------------------------------------
+
+Please follow up with me at ${ticket.email}.
+
+Kind regards,
+${ticket.name}`;
+
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(SUPPORT_EMAIL)}&cc=${encodeURIComponent(ticket.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Builds a direct Outlook Web compose URL pre-addressed to support@ikhayaresliving.co.za
+ */
+export function generateSupportOutlookUrl(ticket: SupportTicketData): string {
+  const subject = `[iKhaya Support Query #${ticket.ticketNumber}] ${ticket.subject}`;
+  const body = `Dear iKhaya Res Living Support Team,
+
+I am writing regarding my support query (Ticket Reference: #${ticket.ticketNumber}).
+
+User Details:
+- Name: ${ticket.name}
+- Email: ${ticket.email}
+- Phone: ${ticket.phone || 'N/A'}
+- Role: ${ticket.role.toUpperCase()}
+- Category: ${ticket.category}
+- University / Campus: ${ticket.university || 'General'}
+- Ticket ID: #${ticket.ticketNumber}
+
+Query:
+----------------------------------------
+${ticket.message}
+----------------------------------------
+
+Please follow up with me at ${ticket.email}.
+
+Kind regards,
+${ticket.name}`;
+
+  return `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(SUPPORT_EMAIL)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Builds a Gmail Web compose URL to email confirmation receipt to user's inbox
+ */
+export function generateWelcomeGmailUrl(data: AccountWelcomeData): string {
+  const subject = `iKhaya Res Living - Account Confirmation for ${data.name}`;
+  const body = `Hello ${data.name},
+
+This email records your registration with iKhaya Res Living:
+- Account Email: ${data.email}
+- Role: ${data.role}
+- Registration Date: ${data.createdAt}
+
+Platform: https://ikhayaresliving.co.za
+Support Desk: ${SUPPORT_EMAIL}`;
+
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(data.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
